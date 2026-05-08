@@ -1,0 +1,7 @@
+
+    $subservices->{'16.taliscale'} = {
+				'caption' => 'Tailscale',
+			    'uri' => '/cgi-bin/tailscale.cgi',
+			    'title' => "$Lang::tr{'tailscale'}",
+			    'enabled' => 1,
+			 	 };	  
