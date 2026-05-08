@@ -24,7 +24,7 @@ sh uninstall.sh
 ```bash
 /etc/init.d/tailscale up
 ```
-   首次执行会生成登录 URL，复制到浏览器完成认证。然后导航到 服务 → Tailscale，可以查看连接信息并对Tailscale进行控制。
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;首次执行会生成登录 URL，复制到浏览器完成认证。然后导航到 服务 → Tailscale，可以查看连接信息并对Tailscale进行控制。
 
 2. 通告路由。外部设备访问 IPFrie 子网，需要添加通告路由。以 IPFire 的子网192.168.101.0/24为例，执行以下命令：
 ```bash
