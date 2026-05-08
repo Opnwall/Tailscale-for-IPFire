@@ -1,19 +1,15 @@
-## Mihomo for OPNsense
-在 OPNsense 上运行 Mihomo、Mosdns，实现透明代理。支持订阅、DNS 分流。可以进行配置修改、程序控制、日志查看。在 OPNsense 26.1.6 上测试通过。
+## Tailscale for OPNsense
+适用于 IPFire 的 Tailscale 插件。在 IPFire 2.29 (x86_64) – Core Update 200上测试通过。
 
-![](images/proxy.png)
+![](images/tailscale.png)
 
 ## 集成程序
-[MosDNS](https://github.com/IrineSistiana/mosdns) 
+[tailscale](https://pkgs.tailscale.com/stable/#static)
 
-[Vincent-Loeng大佬魔改Mihomo](https://github.com/Vincent-Loeng/mihomo) 
+[tailscaled](https://pkgs.tailscale.com/stable/#static)
 
 ## 注意事项
-1. 当前仅支持 x86_64 平台。
-2. 脚本不提供任何订阅信息，请准备好自己的订阅 URL。
-3. 脚本会自动添加 tun 接口、防火墙规则，修改 dns 端口，重启服务并应用配置。
-4. 脚本已集成了可用的默认配置，只需替换 proxies 和 rule 部分配置即可使用。
-5. 为减少长期运行保存的日志数量，在调试完成后，请将所有配置的日志类型修改为 error 或 warn。
+1. 当前仅支持 x86_64 平台，arm平台没做测试。
 
 ## 安装命令
 ```bash
@@ -23,15 +19,29 @@ sh install.sh
 ```bash
 sh uninstall.sh
 ```
-
 ## 配置过程
-1. 安装完成，检查 接口>分配，tun_3000 虚拟网卡是否添加为接口并启用（无需输入 IPv4 地址和网关）。
-2. 为避免端口冲突，检查 Unbound DNS 端口是否修改为 5355 端口（可以作为 mosdns 的默认上游 DNS）。
-3. 检查 防火墙>规则(新)，tun 接口是否有 any to any 防火墙规则，以允许 tun 子网访问。
-4. 导航到 VPN>代理 菜单，修改 mihomo 配置并保存。
-5. 启动服务，客户端访问 ip111.cn，检查分流是否正常。
+1. 安装完成后，输入以下命令注册并加入 Tailscale 网络：
+```bash
+/etc/init.d/tailscale up
+```
+首次执行会生成登录 URL，复制到浏览器完成认证。
+2. 导航到 服务 → Tailscale，可以查看连接信息并对Tailscale进行控制。
+3. 通告路由。外部设备访问 IPFrie 子网，需要添加通告路由。以 IPFire 的子网192.168.101.0/24为例，执行以下命令：
+```bash
+tailscale up --advertise-routes=192.168.101.0/24 --accept-dns=false --accept-routes --hostname=ipfire
+```
+命令执行完成，登录 Tailscale 管理后台，找到 IPFire设备，点击列表右侧的Edit route setting，选中启用“ Subnet routes”。
+4. 出口节点。如果把 IPFire 做为出口节点，则需要执行以下命令：
+```bash
+tailscale up --advertise-exit-node --accept-dns=false --accept-routes --advertise-routes=192.168.101.0/24 --hostname=ipfire
+```
+然后登录 Tailscale 管理后台，找到 IPFire设备，点击列表右侧的Edit route setting，选中启用 “Use as exit node”。
 
-## 其他事项
-1. 经测试 OPNsense的mihomo 配置文件stack 参数只能使用 gvisor栈。
-2. 默认配置文件开启了 api 功能，访问 http://lan_ip:9090/ui 登录仪表盘。
-3. 转到系统>设置>任务，添加”Renew mihomo Subsribe”和“mosdns rule_list updates”任务，自动更新订阅和规则列表。
+## 常用命令
+- 启动服务：  /etc/init.d/tailscale start
+- 停止服务：  /etc/init.d/tailscale stop
+- 重启服务：  /etc/init.d/tailscale restart
+- 加入网络：  /etc/init.d/tailscale up
+- 断开连接：  /etc/init.d/tailscale down
+- 退出网络：  tailscale logout
+- 查看状态：  tailscale status
