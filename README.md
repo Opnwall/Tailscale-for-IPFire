@@ -1,7 +1,7 @@
 ## Tailscale for OPNsense
 适用于 IPFire 的 Tailscale 插件。在 IPFire 2.29 (x86_64) – Core Update 200上测试通过。
 
-![](images/tailscale.png)
+![](image/tailscale.png)
 
 ## 集成程序
 [tailscale](https://pkgs.tailscale.com/stable/#static)
@@ -20,18 +20,19 @@ sh install.sh
 sh uninstall.sh
 ```
 ## 配置过程
-1. 安装完成后，输入以下命令注册并加入 Tailscale 网络：
+1. 加入网络。安装完成后，输入以下命令注册并加入 Tailscale 网络：
 ```bash
 /etc/init.d/tailscale up
 ```
-首次执行会生成登录 URL，复制到浏览器完成认证。
-2. 导航到 服务 → Tailscale，可以查看连接信息并对Tailscale进行控制。
-3. 通告路由。外部设备访问 IPFrie 子网，需要添加通告路由。以 IPFire 的子网192.168.101.0/24为例，执行以下命令：
+首次执行会生成登录 URL，复制到浏览器完成认证。然后导航到 服务 → Tailscale，可以查看连接信息并对Tailscale进行控制。
+
+2. 通告路由。外部设备访问 IPFrie 子网，需要添加通告路由。以 IPFire 的子网192.168.101.0/24为例，执行以下命令：
 ```bash
 tailscale up --advertise-routes=192.168.101.0/24 --accept-dns=false --accept-routes --hostname=ipfire
 ```
 命令执行完成，登录 Tailscale 管理后台，找到 IPFire设备，点击列表右侧的Edit route setting，选中启用“ Subnet routes”。
-4. 出口节点。如果把 IPFire 做为出口节点，则需要执行以下命令：
+
+3. 出口节点。如果把 IPFire 做为出口节点，则需要执行以下命令：
 ```bash
 tailscale up --advertise-exit-node --accept-dns=false --accept-routes --advertise-routes=192.168.101.0/24 --hostname=ipfire
 ```
@@ -43,5 +44,5 @@ tailscale up --advertise-exit-node --accept-dns=false --accept-routes --advertis
 - 重启服务：  /etc/init.d/tailscale restart
 - 加入网络：  /etc/init.d/tailscale up
 - 断开连接：  /etc/init.d/tailscale down
-- 退出网络：  tailscale logout
-- 查看状态：  tailscale status
+- 退出网络：  /etc/init.d/tailscale logout
+- 查看状态：  /etc/init.d/tailscale status
