@@ -1,5 +1,5 @@
 ## Tailscale for OPNsense
-适用于 IPFire 的 Tailscale 插件。在 IPFire 2.29 (x86_64) – Core Update 200上测试通过。
+适用于 IPFire 的 Tailscale 插件。在 IPFire 2.29 (x86_64) – Core Update 200 上测试通过。
 
 ![](image/tailscale.png)
 
