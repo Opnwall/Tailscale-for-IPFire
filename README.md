@@ -4,7 +4,7 @@
 ![](image/tailscale.png)
 
 ## 程序下载
-[tailscale](https://pkgs.tailscale.com/stable/#static)
+[Tailscale](https://pkgs.tailscale.com/stable/#static)
 
 ## 注意事项
 当前仅支持 x86_64 平台，arm平台没做测试。
