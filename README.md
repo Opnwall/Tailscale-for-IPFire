@@ -3,7 +3,7 @@
 
 ![](image/tailscale.png)
 
-## 集成程序
+## 程序下载
 [tailscale](https://pkgs.tailscale.com/stable/#static)
 
 [tailscaled](https://pkgs.tailscale.com/stable/#static)
