@@ -6,8 +6,6 @@
 ## 程序下载
 [tailscale](https://pkgs.tailscale.com/stable/#static)
 
-[tailscaled](https://pkgs.tailscale.com/stable/#static)
-
 ## 注意事项
 1. 当前仅支持 x86_64 平台，arm平台没做测试。
 
