@@ -18,23 +18,21 @@ sh install.sh
 sh uninstall.sh
 ```
 ## 配置过程
-- 加入网络。安装完成后，输入以下命令注册并加入 Tailscale 网络：
+- 加入网络。安装完成后，输入以下命令注册并加入Tailscale网络：
 ```bash
 /etc/init.d/tailscale up
 ```
-- 首次执行会生成登录 URL，复制到浏览器完成认证。然后导航到 服务 → Tailscale，对Tailscale进行控制。
-
-- 通告路由。从外部访问 IPFrie 子网，需要添加通告路由。以访问子网192.168.101.0/24为例，需要执行以下命令：
+- 首次执行会生成登录URL，复制到浏览器完成认证。然后导航到服务 → Tailscale，对Tailscale进行控制。
+- 通告路由。从外部访问IPFrie子网，需要添加通告路由。以访问子网192.168.101.0/24为例，需要执行以下命令：
 ```bash
 tailscale up --advertise-routes=192.168.101.0/24 --accept-dns=false --accept-routes --hostname=ipfire
 ```
-- 登录Tailscale管理后台，点击 IPFire设备列表右侧的Edit route setting，选中启用“ Subnet routes”。
-
-- 出口节点。如果把 IPFire 做为出口节点，需要执行以下命令：
+- 登录Tailscale管理后台，点击IPFire设备列表右侧的Edit route setting，选中启用“ Subnet routes”。
+- 出口节点。让IPFire做为出口节点，需要执行以下命令：
 ```bash
 tailscale up --advertise-exit-node --accept-dns=false --accept-routes --advertise-routes=192.168.101.0/24 --hostname=ipfire
 ```
-- 登录Tailscale管理后台，点击 IPFire设备列表右侧的Edit route setting，选中启用 “Use as exit node”。
+- 登录Tailscale管理后台，点击IPFire设备列表右侧的Edit route setting，选中启用 “Use as exit node”。
 
 ## 常用命令
 - 启动服务：  /etc/init.d/tailscale start
