@@ -1,5 +1,6 @@
 #!/bin/bash
-# tailscale 卸载脚本
+# tailscale uninstall script
+[ -n "${BASH_VERSION:-}" ] || exec /bin/bash "$0" "$@"
 set -euo pipefail
 
 print_step() {
@@ -8,41 +9,49 @@ print_step() {
 }
 
 if [[ $EUID -ne 0 ]]; then
-    echo "错误：请使用 root 运行此脚本。" >&2
+    echo "Error: please run this script as root." >&2
     exit 1
 fi
 
-print_step "准备卸载 tailscale"
-echo "该操作将删除 tailscale 程序、Web 管理页面、启动项、运行文件和配置文件。"
-read -r -p "是否继续？(y/N): " confirm
+print_step "Preparing Tailscale removal"
+echo "This will remove Tailscale binaries, Web UI, startup links, runtime files, and configuration files."
+read -r -p "Continue? (y/N): " confirm
 if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
-    echo "操作已取消。"
+    echo "Operation cancelled."
     exit 0
 fi
 
-print_step "停止 tailscale 服务"
+print_step "Stopping Tailscale service"
     /etc/init.d/tailscale stop >/dev/null 2>&1 || true
 
-print_step "移除开机自启"
+print_step "Removing startup link"
 rm -f /etc/rc.d/rc3.d/S99tailscale
 
-print_step "删除程序文件"
+print_step "Removing firewall rules"
+while iptables -C FORWARD -i tailscale0 -j ACCEPT 2>/dev/null; do
+    iptables -D FORWARD -i tailscale0 -j ACCEPT || break
+done
+while iptables -C FORWARD -o tailscale0 -j ACCEPT 2>/dev/null; do
+    iptables -D FORWARD -o tailscale0 -j ACCEPT || break
+done
+
+print_step "Removing program files"
 rm -f /etc/init.d/tailscale
 rm -f /usr/local/bin/tailscale
 rm -f /usr/sbin/tailscaled
 rm -f /srv/web/ipfire/cgi-bin/tailscale.cgi
 rm -f /var/ipfire/menu.d/83-tailscale.menu
 
-print_step "删除运行文件"
+print_step "Removing runtime files"
 rm -rf /var/run/tailscale
 rm -f /var/log/tailscale.log
 rm -f /etc/sudoers.d/tailscale
 
-print_step "删除配置文件"
+print_step "Removing configuration files"
 rm -rf /var/ipfire/tailscale
 
-print_step "重载 Web 服务"
-    /etc/init.d/apache reload >/dev/null 2>&1 || true
+print_step "Reloading Web service"
+/etc/init.d/apache reload >/dev/null 2>&1 || true
 
 echo
-echo "tailscale 卸载完成！"
+echo "Tailscale removal complete."

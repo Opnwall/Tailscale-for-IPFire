@@ -1,8 +1,10 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
+no warnings 'once';
 use utf8;
 use JSON::PP;
+use File::Temp qw(tempfile);
 
 require '/var/ipfire/general-functions.pl';
 require "${General::swroot}/lang.pl";
@@ -10,10 +12,11 @@ require "${General::swroot}/header.pl";
 
 my %settings = ();
 
-# ====== 可调整路径 ======
+# Adjustable paths.
 my $service        = "/etc/init.d/tailscale";
 my $sudo_cmd       = "/usr/bin/sudo";
-# ========================
+my $settings_file  = "/var/ipfire/tailscale/settings";
+# =================
 
 &Header::showhttpheaders();
 &Header::getcgihash(\%settings);
@@ -21,10 +24,177 @@ my $sudo_cmd       = "/usr/bin/sudo";
 my $action      = $settings{'ACTION'} || '';
 my $cmd_output  = '';
 my $show_output = 0;
+my $notice_type = 'success';
+my $notice_text = '';
+my %fallback = (
+    not_logged_in => 'Not logged in',
+    not_set => 'Not set',
+    yes => 'Yes',
+    no => 'No',
+    connected => 'Connected',
+    logged_in => 'Logged in',
+    online => 'Online',
+    offline => 'Offline',
+    service_started => 'Service started.',
+    service_start_failed => 'Failed to start service. Please check system logs.',
+    service_stopped => 'Service stopped.',
+    service_stop_failed => 'Failed to stop service. Please check system logs.',
+    service_restarted => 'Service restarted.',
+    service_restart_failed => 'Failed to restart service. Please check system logs.',
+    config_saved => 'Settings saved.',
+    joined => 'Joined Tailscale network with auth key.',
+    join_failed => 'Failed to join network. Please check auth key, network connectivity, and Tailscale service status.',
+    disconnected => 'Tailscale connection disconnected.',
+    disconnect_failed => 'Failed to disconnect. Please check service status.',
+    resumed => 'Tailscale connection restored.',
+    resume_failed => 'Failed to restore connection. Please check the saved auth key, network connectivity, and Tailscale service status.',
+    logged_out => 'Left Tailscale network.',
+    logout_failed => 'Failed to leave network. Please check service status.',
+    refreshed => 'Status refreshed.',
+    service_status => 'Service Status',
+    status => 'Status',
+    running => 'Running',
+    stopped => 'Stopped',
+    start => 'Start',
+    stop => 'Stop',
+    restart => 'Restart',
+    disconnect => 'Disconnect',
+    resume => 'Restore Connection',
+    refresh => 'Refresh',
+    runtime_config => 'Runtime Settings',
+    auth_key => 'Auth Key',
+    auth_key_help => 'Used to authenticate and join the Tailscale network automatically.',
+    hostname => 'Hostname',
+    accept_routes => 'Accept Routes',
+    accept_dns => 'Accept DNS',
+    exit_node => 'Exit Node',
+    advertise_routes => 'Advertise Routes',
+    extra_args => 'Extra Arguments',
+    save_config => 'Save Settings',
+    join_network => 'Join Network',
+    leave_network => 'Leave Network',
+    connection_info => 'Connection Info',
+    assigned_address => 'Assigned Address',
+    login_state => 'Login State',
+    peer_total => 'Peers',
+    peer_online => 'Online Peers',
+    peer_info => 'Peer Info',
+    tailscale_ip => 'Tailscale IP',
+    user => 'User',
+    no_peer_info => 'No peer information available',
+);
+
+sub L {
+    my ($key) = @_;
+    my $lang_key = "tailscale $key";
+    return $Lang::tr{$lang_key} || $fallback{$key} || $key;
+}
 
 sub run_service_command {
     my ($command) = @_;
     return `$sudo_cmd -n $service $command 2>&1`;
+}
+
+sub run_service_command_result {
+    my ($command) = @_;
+    my $output = `$sudo_cmd -n $service $command 2>&1`;
+    my $rc = $? >> 8;
+    return ($output, $rc);
+}
+
+sub shell_quote {
+    my ($value) = @_;
+    $value = '' if !defined $value;
+    $value =~ s/\r//g;
+    $value =~ s/\n/ /g;
+    $value =~ s/'/'"'"'/g;
+    return "'" . $value . "'";
+}
+
+sub checkbox_value {
+    my ($name) = @_;
+    return (defined $settings{$name} && $settings{$name} eq 'on') ? 'on' : 'off';
+}
+
+sub read_config {
+    my %config = (
+        AUTH_KEY            => '',
+        HOSTNAME            => 'ipfire',
+        ACCEPT_ROUTES       => 'on',
+        ACCEPT_DNS          => 'off',
+        ADVERTISE_EXIT_NODE => 'off',
+        ADVERTISE_ROUTES    => '',
+        EXTRA_ARGS          => '',
+    );
+
+    if (open(my $fh, '<', $settings_file)) {
+        while (my $line = <$fh>) {
+            chomp $line;
+            next if $line =~ /^\s*#/ || $line =~ /^\s*$/;
+            next unless $line =~ /^([A-Z_]+)=(.*)$/;
+
+            my ($key, $value) = ($1, $2);
+            next unless exists $config{$key};
+
+            $value =~ s/^\s+|\s+$//g;
+            if ($value =~ /^'(.*)'$/) {
+                $value = $1;
+                $value =~ s/'"'"'/'/g;
+            }
+            elsif ($value =~ /^"(.*)"$/) {
+                $value = $1;
+            }
+            $config{$key} = $value;
+        }
+        close($fh);
+    }
+
+    for my $key (qw(ACCEPT_ROUTES ACCEPT_DNS ADVERTISE_EXIT_NODE)) {
+        $config{$key} = $config{$key} eq 'on' ? 'on' : 'off';
+    }
+
+    return %config;
+}
+
+sub form_config {
+    my %config = read_config();
+
+    for my $key (qw(AUTH_KEY HOSTNAME ADVERTISE_ROUTES EXTRA_ARGS)) {
+        $config{$key} = defined $settings{$key} ? $settings{$key} : '';
+        $config{$key} =~ s/\r//g;
+        $config{$key} =~ s/\n/ /g;
+    }
+
+    $config{'ACCEPT_ROUTES'}       = checkbox_value('ACCEPT_ROUTES');
+    $config{'ACCEPT_DNS'}          = checkbox_value('ACCEPT_DNS');
+    $config{'ADVERTISE_EXIT_NODE'} = checkbox_value('ADVERTISE_EXIT_NODE');
+
+    return %config;
+}
+
+sub save_config {
+    my %config = @_;
+    my ($fh, $filename) = tempfile('tailscale-settings.XXXXXX', DIR => '/tmp', UNLINK => 0);
+
+    print $fh "AUTH_KEY=" . shell_quote($config{'AUTH_KEY'}) . "\n";
+    print $fh "HOSTNAME=" . shell_quote($config{'HOSTNAME'}) . "\n";
+    print $fh "ACCEPT_ROUTES=$config{'ACCEPT_ROUTES'}\n";
+    print $fh "ACCEPT_DNS=$config{'ACCEPT_DNS'}\n";
+    print $fh "ADVERTISE_EXIT_NODE=$config{'ADVERTISE_EXIT_NODE'}\n";
+    print $fh "ADVERTISE_ROUTES=" . shell_quote($config{'ADVERTISE_ROUTES'}) . "\n";
+    print $fh "EXTRA_ARGS=" . shell_quote($config{'EXTRA_ARGS'}) . "\n";
+    close($fh);
+
+    my $output = run_service_command("save_settings $filename");
+    unlink $filename if -f $filename;
+    return $output;
+}
+
+sub set_notice {
+    my ($type, $text) = @_;
+    $notice_type = $type;
+    $notice_text = $text;
+    $show_output = 1;
 }
 
 sub read_status_json {
@@ -47,9 +217,9 @@ sub get_connection_info {
     my %info = (
         hostname     => '',
         tailscale_ip => '',
-        login_state  => '未登录',
-        advertise_routes => '未设置',
-        exit_node        => '否',
+        login_state  => L('not_logged_in'),
+        advertise_routes => L('not_set'),
+        exit_node        => L('no'),
         peer_total   => 0,
         peer_online  => 0,
         peer_rows    => [],
@@ -89,21 +259,21 @@ sub get_connection_info {
 
         if ((defined $self->{'ExitNode'} && $self->{'ExitNode'}) ||
             (defined $self->{'ExitNodeOption'} && $self->{'ExitNodeOption'})) {
-            $info{'exit_node'} = '是';
+            $info{'exit_node'} = L('yes');
         }
 
         if ($self->{'Online'}) {
-            $info{'login_state'} = '已连接';
+            $info{'login_state'} = L('connected');
         }
         elsif ($self->{'ID'}) {
-            $info{'login_state'} = '已登录';
+            $info{'login_state'} = L('logged_in');
         }
-        if ($info{'exit_node'} eq '否' && defined $status_text) {
+        if ($info{'exit_node'} eq L('no') && defined $status_text) {
             my $self_name = $info{'hostname'};
             for my $line (split(/\n/, $status_text)) {
                 next if $line =~ /^\s*$/;
                 if ($self_name ne '' && $line =~ /\b\Q$self_name\E\b/ && $line =~ /offers exit node/i) {
-                    $info{'exit_node'} = '是';
+                    $info{'exit_node'} = L('yes');
                     last;
                 }
             }
@@ -130,7 +300,7 @@ sub get_connection_info {
                     $user = $u->{'LoginName'};
                 }
             }
-            my $state = $p->{'Online'} ? '在线' : '离线';
+            my $state = $p->{'Online'} ? L('online') : L('offline');
 
             push @{$info{'peer_rows'}}, {
                 ip       => $ip,
@@ -156,7 +326,7 @@ sub get_connection_info {
             my $ip = shift @parts;
             my $hostname = shift @parts;
             my $user = @parts ? $parts[0] : '';
-            my $state = '在线';
+            my $state = L('online');
 
             $info{'peer_total'}++;
             $info{'peer_online'}++;
@@ -174,34 +344,54 @@ sub get_connection_info {
     return %info;
 }
 
-# ====== 动作处理 ======
+# Action handling.
 if ($action eq 'start') {
-    $cmd_output = run_service_command('start');
-    $show_output = 1;
+    my ($output, $rc) = run_service_command_result('start');
+    set_notice($rc == 0 ? 'success' : 'error', $rc == 0 ? L('service_started') : L('service_start_failed'));
 }
 elsif ($action eq 'stop') {
-    $cmd_output = run_service_command('stop');
-    $show_output = 1;
+    my ($output, $rc) = run_service_command_result('stop');
+    set_notice($rc == 0 ? 'success' : 'error', $rc == 0 ? L('service_stopped') : L('service_stop_failed'));
 }
 elsif ($action eq 'restart') {
-    $cmd_output = run_service_command('restart');
-    $show_output = 1;
+    my ($output, $rc) = run_service_command_result('restart');
+    set_notice($rc == 0 ? 'success' : 'error', $rc == 0 ? L('service_restarted') : L('service_restart_failed'));
+}
+elsif ($action eq 'save') {
+    my %config = form_config();
+    save_config(%config);
+    set_notice('success', L('config_saved'));
+}
+elsif ($action eq 'up') {
+    my %config = form_config();
+    save_config(%config);
+
+    my ($output, $rc) = run_service_command_result('up');
+    set_notice($rc == 0 ? 'success' : 'error', $rc == 0 ? L('joined') : L('join_failed'));
 }
 elsif ($action eq 'down') {
-    $cmd_output = run_service_command('down');
-    $show_output = 1;
+    my ($output, $rc) = run_service_command_result('down');
+    set_notice($rc == 0 ? 'success' : 'error', $rc == 0 ? L('disconnected') : L('disconnect_failed'));
+}
+elsif ($action eq 'resume') {
+    my ($output, $rc) = run_service_command_result('up');
+    set_notice($rc == 0 ? 'success' : 'error', $rc == 0 ? L('resumed') : L('resume_failed'));
+}
+elsif ($action eq 'logout') {
+    my ($output, $rc) = run_service_command_result('logout');
+    set_notice($rc == 0 ? 'success' : 'error', $rc == 0 ? L('logged_out') : L('logout_failed'));
 }
 elsif ($action eq 'refresh') {
-    $cmd_output = "状态已刷新";
-    $show_output = 1;
+    set_notice('success', L('refreshed'));
 }
 
-# ====== 状态读取 ======
+# Status loading.
 my $service_check = run_service_command('status');
 my $running = (($? >> 8) == 0 || $service_check =~ /running/i) ? 1 : 0;
 my %conn = get_connection_info();
+my %config = read_config();
 
-# ====== 页面 ======
+# Page.
 &Header::openpage("Tailscale", 1, '');
 print "<meta charset='UTF-8'>\n";
 print <<'EOF';
@@ -271,64 +461,97 @@ print <<'EOF';
     background: #edf8e5;
     color: #2f5d12;
 }
+.ipfire-note.error {
+    border-color: #e5b4b4;
+    background: #fdeeee;
+    color: #8a1f1f;
+}
+.config-input {
+    width: 100%;
+    max-width: 520px;
+}
+.config-help {
+    color: #666;
+    font-size: 11px;
+}
 </style>
 EOF
 
 &Header::openbigbox('100%', 'left', '', '');
 print "<form method='post'>";
 
-# ====== 服务状态 ======
-&Header::openbox('100%', 'left', '服务状态');
+# Service status.
+&Header::openbox('100%', 'left', L('service_status'));
 
-print "<b>状态:</b> ";
+print "<b>" . &Header::escape(L('status')) . ":</b> ";
 if ($running) {
-    print "<span class='status-dot running'></span><span style='color:green;'>运行中</span>";
+    print "<span class='status-dot running'></span><span style='color:green;'>" . &Header::escape(L('running')) . "</span>";
 }
 else {
-    print "<span class='status-dot stopped'></span><span style='color:red;'>已停止</span>";
+    print "<span class='status-dot stopped'></span><span style='color:red;'>" . &Header::escape(L('stopped')) . "</span>";
 }
 
 print "<br><br>";
 
-print "<button type='submit' name='ACTION' value='start'>启动</button>  ";
-print "<button type='submit' name='ACTION' value='stop'>停止</button>  ";
-print "<button type='submit' name='ACTION' value='restart'>重启</button>  ";
-print "<button type='submit' name='ACTION' value='refresh'>刷新</button>  ";
+print "<button type='submit' name='ACTION' value='start'>" . &Header::escape(L('start')) . "</button>  ";
+print "<button type='submit' name='ACTION' value='stop'>" . &Header::escape(L('stop')) . "</button>  ";
+print "<button type='submit' name='ACTION' value='restart'>" . &Header::escape(L('restart')) . "</button>  ";
+print "<button type='submit' name='ACTION' value='down'>" . &Header::escape(L('disconnect')) . "</button>  ";
+print "<button type='submit' name='ACTION' value='resume'>" . &Header::escape(L('resume')) . "</button>  ";
+print "<button type='submit' name='ACTION' value='refresh'>" . &Header::escape(L('refresh')) . "</button>  ";
 
 if ($show_output) {
     print "<br><br>";
-    if ($action eq 'refresh') {
-        print "<div class='ipfire-note success'>状态已刷新</div>";
-    }
-    else {
-        print "<div class='ipfire-note'>";
-        print &Header::escape($cmd_output);
-        print "</div>";
-    }
+    print "<div class='ipfire-note " . &Header::escape($notice_type) . "'>";
+    print &Header::escape($notice_text);
+    print "</div>";
 }
 
 &Header::closebox();
 
-# ====== 连接信息 ======
-&Header::openbox('100%', 'left', '连接信息');
+# Runtime settings.
+&Header::openbox('100%', 'left', L('runtime_config'));
+
+my $accept_routes_checked = $config{'ACCEPT_ROUTES'} eq 'on' ? " checked='checked'" : '';
+my $accept_dns_checked = $config{'ACCEPT_DNS'} eq 'on' ? " checked='checked'" : '';
+my $exit_node_checked = $config{'ADVERTISE_EXIT_NODE'} eq 'on' ? " checked='checked'" : '';
 
 print "<table class='info-table'>";
-print "<tr><td class='key'>主机名称</td><td>" . &Header::escape($conn{'hostname'}) . "</td></tr>";
-print "<tr><td class='key'>分配地址</td><td>" . &Header::escape($conn{'tailscale_ip'}) . "</td></tr>";
-print "<tr><td class='key'>登录状态</td><td>" . &Header::escape($conn{'login_state'}) . "</td></tr>";
-print "<tr><td class='key'>通告路由</td><td>" . &Header::escape($conn{'advertise_routes'}) . "</td></tr>";
-print "<tr><td class='key'>出口节点</td><td>" . &Header::escape($conn{'exit_node'}) . "</td></tr>";
-print "<tr><td class='key'>远程节点</td><td>" . &Header::escape($conn{'peer_total'}) . "</td></tr>";
-print "<tr><td class='key'>在线节点</td><td>" . &Header::escape($conn{'peer_online'}) . "</td></tr>";
+print "<tr><td class='key'>" . &Header::escape(L('auth_key')) . "</td><td><input class='config-input' type='password' name='AUTH_KEY' value='" . &Header::escape($config{'AUTH_KEY'}) . "' autocomplete='off'><div class='config-help'>" . &Header::escape(L('auth_key_help')) . "</div></td></tr>";
+print "<tr><td class='key'>" . &Header::escape(L('hostname')) . "</td><td><input class='config-input' type='text' name='HOSTNAME' value='" . &Header::escape($config{'HOSTNAME'}) . "'></td></tr>";
+print "<tr><td class='key'>" . &Header::escape(L('accept_routes')) . "</td><td><input type='checkbox' name='ACCEPT_ROUTES' value='on'$accept_routes_checked></td></tr>";
+print "<tr><td class='key'>" . &Header::escape(L('accept_dns')) . "</td><td><input type='checkbox' name='ACCEPT_DNS' value='on'$accept_dns_checked></td></tr>";
+print "<tr><td class='key'>" . &Header::escape(L('exit_node')) . "</td><td><input type='checkbox' name='ADVERTISE_EXIT_NODE' value='on'$exit_node_checked></td></tr>";
+print "<tr><td class='key'>" . &Header::escape(L('advertise_routes')) . "</td><td><input class='config-input' type='text' name='ADVERTISE_ROUTES' value='" . &Header::escape($config{'ADVERTISE_ROUTES'}) . "' placeholder='192.168.101.0/24'></td></tr>";
+print "<tr><td class='key'>" . &Header::escape(L('extra_args')) . "</td><td><input class='config-input' type='text' name='EXTRA_ARGS' value='" . &Header::escape($config{'EXTRA_ARGS'}) . "'></td></tr>";
+print "</table>";
+print "<br>";
+print "<button type='submit' name='ACTION' value='save'>" . &Header::escape(L('save_config')) . "</button>  ";
+print "<button type='submit' name='ACTION' value='up'>" . &Header::escape(L('join_network')) . "</button>  ";
+print "<button type='submit' name='ACTION' value='logout'>" . &Header::escape(L('leave_network')) . "</button>";
+
+&Header::closebox();
+
+# Connection info.
+&Header::openbox('100%', 'left', L('connection_info'));
+
+print "<table class='info-table'>";
+print "<tr><td class='key'>" . &Header::escape(L('hostname')) . "</td><td>" . &Header::escape($conn{'hostname'}) . "</td></tr>";
+print "<tr><td class='key'>" . &Header::escape(L('assigned_address')) . "</td><td>" . &Header::escape($conn{'tailscale_ip'}) . "</td></tr>";
+print "<tr><td class='key'>" . &Header::escape(L('login_state')) . "</td><td>" . &Header::escape($conn{'login_state'}) . "</td></tr>";
+print "<tr><td class='key'>" . &Header::escape(L('advertise_routes')) . "</td><td>" . &Header::escape($conn{'advertise_routes'}) . "</td></tr>";
+print "<tr><td class='key'>" . &Header::escape(L('exit_node')) . "</td><td>" . &Header::escape($conn{'exit_node'}) . "</td></tr>";
+print "<tr><td class='key'>" . &Header::escape(L('peer_total')) . "</td><td>" . &Header::escape($conn{'peer_total'}) . "</td></tr>";
+print "<tr><td class='key'>" . &Header::escape(L('peer_online')) . "</td><td>" . &Header::escape($conn{'peer_online'}) . "</td></tr>";
 print "</table>";
 
 &Header::closebox();
 
-# ====== 节点信息 ======
-&Header::openbox('100%', 'left', '节点信息');
+# Peer info.
+&Header::openbox('100%', 'left', L('peer_info'));
 
 print "<table class='peer-table'>";
-print "<tr><th>Tailscale IP</th><th>主机名</th><th>用户</th><th>状态</th></tr>";
+print "<tr><th>" . &Header::escape(L('tailscale_ip')) . "</th><th>" . &Header::escape(L('hostname')) . "</th><th>" . &Header::escape(L('user')) . "</th><th>" . &Header::escape(L('status')) . "</th></tr>";
 
 if (ref($conn{'peer_rows'}) eq 'ARRAY' && @{$conn{'peer_rows'}}) {
     for my $peer (@{$conn{'peer_rows'}}) {
@@ -347,7 +570,7 @@ if (ref($conn{'peer_rows'}) eq 'ARRAY' && @{$conn{'peer_rows'}}) {
     }
 }
 else {
-    print "<tr><td colspan='4'>暂无节点信息</td></tr>";
+    print "<tr><td colspan='4'>" . &Header::escape(L('no_peer_info')) . "</td></tr>";
 }
 
 print "</table>";
