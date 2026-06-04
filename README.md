@@ -10,7 +10,7 @@ The installer downloads the official [Tailscale static binaries](https://pkgs.ta
 
 ## Notes
 
-The add-on is tested on x86_64 / amd64. The installer detects the IPFire platform automatically and downloads the matching Tailscale static binary. You can still override the architecture with `sh install.sh arm64`, `sh install.sh arm`, or `sh install.sh 386`.
+The add-on is tested on x86_64 / amd64. The installer detects the IPFire platform automatically and downloads the matching Tailscale static binary. 
 
 The Web UI uses IPFire language packs and includes English, Simplified Chinese, and Traditional Chinese strings.
 
@@ -18,12 +18,6 @@ The Web UI uses IPFire language packs and includes English, Simplified Chinese, 
 
 ```bash
 sh install.sh
-```
-
-To install for another architecture:
-
-```bash
-sh install.sh arm64
 ```
 
 ## Uninstall
