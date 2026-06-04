@@ -6,7 +6,7 @@ Tailscale add-on for IPFire. Tested on IPFire 2.29 (x86_64), Core Update 202.
 
 ## Tailscale Binaries
 
-The installer downloads the official [Tailscale static binaries](https://pkgs.tailscale.com/stable/#static) during installation. No prebuilt binaries or separate download script need to be stored in this project.
+The installer downloads the official [Tailscale static binaries](https://pkgs.tailscale.com/stable/#static) during installation. 
 
 ## Notes
 
@@ -61,13 +61,3 @@ tailscale up --advertise-exit-node --accept-dns=false --accept-routes --advertis
 ```
 
 - In the Tailscale admin console, open the IPFire device route settings and enable Use as exit node.
-
-## Commands
-
-- Start service: `/etc/init.d/tailscale start`
-- Stop service: `/etc/init.d/tailscale stop`
-- Restart service: `/etc/init.d/tailscale restart`
-- Join network: `/etc/init.d/tailscale up`
-- Disconnect: `/etc/init.d/tailscale down`
-- Leave network: `/etc/init.d/tailscale logout`
-- Show status: `/etc/init.d/tailscale status`
