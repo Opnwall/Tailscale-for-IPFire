@@ -1,57 +1,142 @@
-## Tailscale for IPFire
+# Tailscale for IPFire
 
-Tailscale add-on for IPFire. Tested on IPFire 2.29 (x86_64), Core Update 202.
+![IPFire](https://img.shields.io/badge/IPFire-2.29-orange)
+![Architecture](https://img.shields.io/badge/Arch-x86__64-blue)
+![License](https://img.shields.io/badge/License-GPLv3-green)
 
-![](image/tailscale.png)
+Tailscale VPN integration for IPFire with native Web UI support.
 
-## Tailscale Binaries
+![Screenshot](image/tailscale.png)
 
-The installer downloads the official [Tailscale static binaries](https://pkgs.tailscale.com/stable/#static) during installation. 
+## Overview
 
-## Notes
+Tailscale for IPFire provides a native Web UI for managing Tailscale directly from the IPFire administration interface.
 
-The add-on is tested on x86_64 / amd64. The installer detects the IPFire platform automatically and downloads the matching Tailscale static binary. 
+The package automatically downloads the official Tailscale static binaries during installation and supports subnet routing, exit node functionality, and multilingual Web UI integration.
 
-The Web UI uses IPFire language packs and includes English, Simplified Chinese, and Traditional Chinese strings.
+## Features
 
-## Install
+- Native IPFire Web UI integration
+- Join Tailscale networks using Auth Keys
+- Configure custom hostnames
+- Advertise subnet routes
+- Enable Exit Node functionality
+- Automatic platform detection
+- Automatic download of official Tailscale static binaries
+- English, Simplified Chinese, and Traditional Chinese language support
+
+## Tested Platforms
+
+| Platform | Version |
+|----------|----------|
+| IPFire | 2.29 Core Update 202 |
+| Architecture | x86_64 / amd64 |
+
+## Installation
 
 ```bash
 sh install.sh
 ```
 
-## Uninstall
+## Uninstallation
 
 ```bash
 sh uninstall.sh
 ```
 
-## Setup
+## Configuration
 
-- After installation, go to Services > Tailscale, enter the auth key, hostname, and route settings, then click Join Network.
-- You can also join from the terminal:
+After installation, open:
+
+```text
+Services > Tailscale
+```
+
+Configure:
+
+- Auth Key
+- Hostname
+- Advertise Routes
+- Exit Node settings
+
+Then click:
+
+```text
+Join Network
+```
+
+## Command Line Usage
+
+Bring up Tailscale:
 
 ```bash
 /etc/init.d/tailscale up
 ```
 
-- To access an IPFire subnet from Tailscale, advertise the route. For example, enter this in Advertise Routes:
+## Subnet Router
+
+To advertise an internal subnet:
 
 ```text
 192.168.101.0/24
 ```
 
-Or run:
+Or use:
 
 ```bash
 tailscale up --advertise-routes=192.168.101.0/24 --accept-dns=false --accept-routes --hostname=ipfire
 ```
 
-- In the Tailscale admin console, open the IPFire device route settings and enable Subnet routes.
-- To use IPFire as an exit node, enable Exit Node in the Web UI, or run:
+After advertising routes:
+
+1. Open the Tailscale Admin Console
+2. Select the IPFire device
+3. Enable Subnet Routes
+
+## Exit Node
+
+Enable Exit Node in the Web UI or run:
 
 ```bash
 tailscale up --advertise-exit-node --accept-dns=false --accept-routes --advertise-routes=192.168.101.0/24 --hostname=ipfire
 ```
 
-- In the Tailscale admin console, open the IPFire device route settings and enable Use as exit node.
+Then approve:
+
+```text
+Use as exit node
+```
+
+in the Tailscale Admin Console.
+
+## Tailscale Binaries
+
+The installer downloads official static binaries from:
+
+https://pkgs.tailscale.com/stable/#static
+
+## Notes
+
+- Auth Keys are recommended for automated deployment.
+- Advertised routes must be approved in the Tailscale Admin Console.
+- Exit Nodes must also be approved in the Admin Console.
+- DNS management is disabled by default (`--accept-dns=false`) to avoid overriding local IPFire DNS settings.
+
+## Screenshots
+
+![Tailscale Web UI](image/tailscale.png)
+
+## License
+
+GPLv3
+
+## Disclaimer
+
+This project is an unofficial community package.
+
+It is not affiliated with, endorsed by, or supported by:
+
+- IPFire
+- Tailscale
+
+Use at your own risk.
