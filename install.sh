@@ -96,7 +96,18 @@ install_lang_fragment() {
         my $data = <$dfh>;
         close($dfh);
 
-        my $close_pos = index($data, "\n);");
+        sub find_final_hash_terminator {
+            my ($text) = @_;
+            my $pos = -1;
+
+            while ($text =~ /^[ \t]*\);[ \t]*(?:#.*)?(?:\r?\n|\z)/mg) {
+                $pos = $-[0];
+            }
+
+            return $pos;
+        }
+
+        my $close_pos = find_final_hash_terminator($data);
         die "$dst has no final language hash terminator\n" if $close_pos < 0;
 
         my $marker_pos = index($data, $marker);
@@ -108,16 +119,15 @@ install_lang_fragment() {
         }
 
         if ($marker_pos >= 0) {
-            $data =~ s/\n# Tailscale add-on\n.*?\z/\n/s;
-            $close_pos = index($data, "\n);");
+            $data =~ s/\r?\n# Tailscale add-on\r?\n.*?(?=^[ \t]*\);[ \t]*(?:#.*)?(?:\r?\n|\z))//sm;
+            $close_pos = find_final_hash_terminator($data);
             die "$dst has no final language hash terminator after cleanup\n" if $close_pos < 0;
         }
 
         my $insert = "\n# Tailscale add-on\n" . $fragment;
         $insert .= "\n" unless $insert =~ /\n\z/;
 
-        die "$dst has no final language hash terminator\n"
-            unless $data =~ s/\n\);\s*\z/$insert\);\n/s;
+        substr($data, $close_pos, 0) = $insert;
 
         open(my $ofh, ">:raw", $tmp) or die "open $tmp failed: $!";
         print {$ofh} $data;
