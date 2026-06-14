@@ -29,7 +29,7 @@ The package automatically downloads the official Tailscale static binaries durin
 
 | Platform | Version |
 |----------|----------|
-| IPFire | 2.29 Core Update 202 |
+| IPFire | 2.29 Core Update 203 |
 | Architecture | x86_64 / amd64 |
 
 ## Installation
@@ -128,11 +128,4 @@ GPLv3
 
 ## Disclaimer
 
-This project is an unofficial community package.
-
-It is not affiliated with, endorsed by, or supported by:
-
-- IPFire
-- Tailscale
-
-Use at your own risk.
+This project is an unofficial community package，Use at your own risk.
