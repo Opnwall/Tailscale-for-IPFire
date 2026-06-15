@@ -122,10 +122,6 @@ https://pkgs.tailscale.com/stable/#static
 - Exit Nodes must also be approved in the Admin Console.
 - DNS management is disabled by default (`--accept-dns=false`) to avoid overriding local IPFire DNS settings.
 
-## License
-
-GPLv3
-
 ## Disclaimer
 
 This project is an unofficial community package，Use at your own risk.
