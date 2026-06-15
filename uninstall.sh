@@ -1,25 +1,28 @@
-#!/bin/bash
+#!/bin/sh
 # tailscale uninstall script
-[ -n "${BASH_VERSION:-}" ] || exec /bin/bash "$0" "$@"
-set -euo pipefail
+set -eu
 
 print_step() {
     echo
     echo "==> $1"
 }
 
-if [[ $EUID -ne 0 ]]; then
+if [ "$(id -u)" -ne 0 ]; then
     echo "Error: please run this script as root." >&2
     exit 1
 fi
 
 print_step "Preparing Tailscale removal"
 echo "This will remove Tailscale binaries, Web UI, startup links, runtime files, and configuration files."
-read -r -p "Continue? (y/N): " confirm
-if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+printf "Continue? (y/N): "
+read -r confirm
+case "$confirm" in
+    [Yy]) ;;
+    *)
     echo "Operation cancelled."
     exit 0
-fi
+    ;;
+esac
 
 print_step "Stopping Tailscale service"
     /etc/init.d/tailscale stop >/dev/null 2>&1 || true
