@@ -55,8 +55,9 @@ Services > Tailscale
 First, click Start and enter the authentication key, then configure the following items as needed:
 
 - Hostname
-- Advertised routes
-- Exit node
+- Accept Routes
+- Advertised Routes
+- Exit Node
 
 Click "Save Settings," then click:
 
