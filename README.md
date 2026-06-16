@@ -30,7 +30,7 @@ Tailscale for IPFire 为 IPFire 提供原生 Web 管理界面，可直接在 IPF
 
 | 平台 | 版本 |
 |------|------|
-| IPFire | 2.29 Core Update 203 |
+| IPFire | 2.29 Core Update 202 |
 | 架构 | x86_64 / amd64 |
 
 ## 安装
