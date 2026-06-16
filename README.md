@@ -17,24 +17,16 @@
 
 Tailscale for IPFire 为 IPFire 提供原生 Web 管理界面，可直接在 IPFire 管理后台中完成 Tailscale 的配置与管理。
 
-安装过程中会自动下载官方 Tailscale 静态二进制文件，并支持：
-
-- 子网路由（Subnet Router）
-- 出口节点（Exit Node）
-- 多语言 Web UI
-
 ## 功能特性
 
 - 原生 IPFire Web UI 集成
-- 使用 Auth Key 加入 Tailscale 网络
-- 自定义主机名
-- 发布子网路由
-- 支持 Exit Node（出口节点）
-- 自动识别平台架构
-- 自动下载官方 Tailscale 静态二进制文件
-- 支持英文、简体中文和繁体中文
+- 使用认证密钥加入 Tailscale 网络
+- 可以自定义主机名
+- 支持配置子网路由、出口节点
+- 自动识别平台架构，自动下载官方 Tailscale 静态二进制文件
+- 支持英文、简体中文和繁体中文，其他语言自动回退到英文界面
 
-## 测试平台
+## 支持平台
 
 | 平台 | 版本 |
 |------|------|
@@ -42,91 +34,42 @@ Tailscale for IPFire 为 IPFire 提供原生 Web 管理界面，可直接在 IPF
 | 架构 | x86_64 / amd64 |
 
 ## 安装
-
 ```bash
 sh install.sh
 ```
-
 ## 卸载
-
 ```bash
 sh uninstall.sh
 ```
-
 ## 配置
-
 安装完成后进入：
-
 ```text
-Services > Tailscale
+服务> Tailscale
 ```
-
-配置以下项目：
-
-- Auth Key（认证密钥）
-- Hostname（主机名）
-- Advertise Routes（发布路由）
-- Exit Node 设置
+先点击启动，然后输入认证密钥，然后根据需要配置以下项目：
+- 主机名
+- 广播路由
+- 出口节点
 
 然后点击：
-
 ```text
-Join Network
+加入网络
 ```
-
-## 命令行使用
-
-启动 Tailscale：
-
-```bash
-/etc/init.d/tailscale up
-```
-
-## 子网路由（Subnet Router）
-
-发布内部网段，例如：
-
-```text
-192.168.101.0/24
-```
-
-或者执行：
-
-```bash
-tailscale up --advertise-routes=192.168.101.0/24 --accept-dns=false --accept-routes --hostname=ipfire
-```
-
 完成后：
-
-1. 打开 Tailscale Admin Console
+1. 打开 Tailscale 管理后台
 2. 选择对应的 IPFire 设备
-3. 启用 Subnet Routes
-
-## 出口节点（Exit Node）
-
-在 Web UI 中启用 Exit Node，或执行：
-
-```bash
-tailscale up --advertise-exit-node --accept-dns=false --accept-routes --advertise-routes=192.168.101.0/24 --hostname=ipfire
-```
-
-随后在 Tailscale Admin Console 中批准：
-
-```text
-Use as exit node
-```
+3. 禁用密钥过期
+4. 启用子网路由或出口节点
 
 ## Tailscale 二进制文件
 
 安装程序会自动下载官方静态二进制文件：
-
 https://pkgs.tailscale.com/stable/#static
 
 ## 注意事项
 
-- 建议使用 Auth Key 进行自动部署。
-- 发布路由后需要在 Tailscale 管理后台手动批准。
-- Exit Node 同样需要在管理后台批准。
+- 插件设置页面只能使用认证密钥进行自动部署。
+- 广播路由和出口节点需要在 Tailscale 管理后台手动批准。
 - 默认禁用 DNS 接管（`--accept-dns=false`），避免覆盖 IPFire 本地 DNS 配置。
 
 ## 免责声明
