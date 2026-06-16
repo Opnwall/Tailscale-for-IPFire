@@ -2,7 +2,6 @@
 set -eu
 
 BASE_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
-LANG_MARKER="tailscale service_status"
 TAILSCALE_ARCH="${TAILSCALE_ARCH:-}"
 if [ -z "$TAILSCALE_ARCH" ] && [ "$#" -gt 0 ]; then
     TAILSCALE_ARCH="$1"
@@ -37,16 +36,6 @@ assert_elf() {
     fi
 }
 
-require_file() {
-    file="$1"
-    [ -f "$file" ] || die "Missing file: $file"
-}
-
-require_dir() {
-    dir="$1"
-    [ -d "$dir" ] || die "Missing directory: $dir"
-}
-
 detect_tailscale_arch() {
     machine="$(uname -m 2>/dev/null || true)"
     case "$machine" in
@@ -66,94 +55,6 @@ detect_tailscale_arch() {
             die "Unsupported platform architecture: ${machine:-unknown}. Set TAILSCALE_ARCH to amd64, arm64, arm, or 386."
             ;;
     esac
-}
-
-install_lang_fragment() {
-    src="$1"
-    dst="$2"
-
-    require_file "$src"
-    require_file "$dst"
-
-    tmp="$(mktemp /tmp/tailscale-lang.XXXXXX)"
-
-    set +e
-    perl -0e '
-        use strict;
-        use warnings;
-
-        my ($src, $dst, $tmp, $marker) = @ARGV;
-
-        open(my $sfh, "<:raw", $src) or die "open $src failed: $!";
-        my $fragment = <$sfh>;
-        close($sfh);
-        $fragment =~ s/\A\s+//;
-        $fragment =~ s/\s+\z/\n/;
-
-        open(my $dfh, "<:raw", $dst) or die "open $dst failed: $!";
-        my $data = <$dfh>;
-        close($dfh);
-
-        sub find_final_hash_terminator {
-            my ($text) = @_;
-            my $pos = -1;
-
-            while ($text =~ /^[ \t]*\);[ \t]*(?:#.*)?(?:\r?\n|\z)/mg) {
-                $pos = $-[0];
-            }
-
-            return $pos;
-        }
-
-        my $close_pos = find_final_hash_terminator($data);
-        die "$dst has no final language hash terminator\n" if $close_pos < 0;
-
-        my $marker_pos = index($data, $marker);
-        if ($marker_pos >= 0 && $marker_pos < $close_pos) {
-            open(my $ofh, ">:raw", $tmp) or die "open $tmp failed: $!";
-            print {$ofh} $data;
-            close($ofh);
-            exit 2;
-        }
-
-        if ($marker_pos >= 0) {
-            $data =~ s/\r?\n# Tailscale add-on\r?\n.*?(?=^[ \t]*\);[ \t]*(?:#.*)?(?:\r?\n|\z))//sm;
-            $close_pos = find_final_hash_terminator($data);
-            die "$dst has no final language hash terminator after cleanup\n" if $close_pos < 0;
-        }
-
-        my $insert = "\n# Tailscale add-on\n" . $fragment;
-        $insert .= "\n" unless $insert =~ /\n\z/;
-
-        substr($data, $close_pos, 0) = $insert;
-
-        open(my $ofh, ">:raw", $tmp) or die "open $tmp failed: $!";
-        print {$ofh} $data;
-        close($ofh);
-    ' "$src" "$dst" "$tmp" "$LANG_MARKER"
-    rc=$?
-    set -e
-
-    if [ "$rc" -eq 2 ]; then
-        rm -f "$tmp"
-        echo "Language entries already present in $dst"
-        return 0
-    fi
-
-    if [ "$rc" -ne 0 ]; then
-        rm -f "$tmp"
-        die "Failed to update language file: $dst"
-    fi
-
-    install -m 644 "$tmp" "$dst"
-    rm -f "$tmp"
-    echo "Added language entries to $dst"
-}
-
-install_language_entries() {
-    install_lang_fragment "$BASE_DIR/langs/lang.en" /var/ipfire/langs/en.pl
-    install_lang_fragment "$BASE_DIR/langs/lang.zh" /var/ipfire/langs/zh.pl
-    install_lang_fragment "$BASE_DIR/langs/lang.tw" /var/ipfire/langs/tw.pl
 }
 
 download_tailscale_binaries() {
@@ -180,12 +81,11 @@ download_tailscale_binaries() {
     [ -x "$pkg_dir/tailscale" ] || die "tailscale is missing from the static package"
     [ -x "$pkg_dir/tailscaled" ] || die "tailscaled is missing from the static package"
 
-    install -d -m 755 "$BASE_DIR/bin"
-    install -m 755 "$pkg_dir/tailscale" "$BASE_DIR/bin/tailscale"
-    install -m 755 "$pkg_dir/tailscaled" "$BASE_DIR/bin/tailscaled"
+    install -m 755 "$pkg_dir/tailscale" /usr/local/bin/tailscale
+    install -m 755 "$pkg_dir/tailscaled" /usr/sbin/tailscaled
 
-    assert_elf "$BASE_DIR/bin/tailscale" "tailscale"
-    assert_elf "$BASE_DIR/bin/tailscaled" "tailscaled"
+    assert_elf /usr/local/bin/tailscale "tailscale"
+    assert_elf /usr/sbin/tailscaled "tailscaled"
 }
 
 if [ "$(id -u)" -ne 0 ]; then
@@ -199,7 +99,7 @@ if [ -z "$TAILSCALE_ARCH" ]; then
 fi
 
 print_step "Preparing Tailscale installation"
-echo "This will install tailscale, tailscaled, the Web UI, the menu entry, language strings, and reload the Web service."
+echo "This will install tailscale, tailscaled, the Web UI, the menu entry, and reload the Web service."
 echo "Tailscale static binary architecture: $TAILSCALE_ARCH"
 printf "Continue? (y/N): "
 read -r confirm
@@ -212,26 +112,17 @@ case "$confirm" in
 esac
 
 print_step "Checking source files"
-for dir in "$BASE_DIR/ipfire" "$BASE_DIR/cgi-bin" "$BASE_DIR/etc" "$BASE_DIR/langs"; do
-    require_dir "$dir"
-done
+[ -d "$BASE_DIR/src" ] || die "Missing directory: $BASE_DIR/src"
+[ -f "$BASE_DIR/src/etc/rc.d/init.d/tailscale" ] || die "Missing file: src/etc/rc.d/init.d/tailscale"
+[ -f "$BASE_DIR/src/srv/web/ipfire/cgi-bin/tailscale.cgi" ] || die "Missing file: src/srv/web/ipfire/cgi-bin/tailscale.cgi"
 
-require_file "$BASE_DIR/etc/init.d/tailscale"
-require_file "$BASE_DIR/cgi-bin/tailscale.cgi"
-require_file "$BASE_DIR/langs/lang.en"
-require_file "$BASE_DIR/langs/lang.zh"
-require_file "$BASE_DIR/langs/lang.tw"
+print_step "Stopping old service"
+/etc/rc.d/init.d/tailscale stop >/dev/null 2>&1 || true
 
 print_step "Downloading Tailscale binaries"
-download_tailscale_binaries
-
-print_step "Creating target directories"
-install -d -m 755 /var/ipfire/tailscale
-install -d -m 755 /srv/web/ipfire/cgi-bin
 install -d -m 755 /usr/local/bin
 install -d -m 755 /usr/sbin
-install -d -m 755 /etc/sudoers.d
-install -d -m 755 /var/run/tailscale
+download_tailscale_binaries
 
 print_step "Copying files"
 tmp_settings=""
@@ -240,11 +131,7 @@ if [ -f /var/ipfire/tailscale/settings ]; then
     cp -p /var/ipfire/tailscale/settings "$tmp_settings"
 fi
 
-cp -a "$BASE_DIR/ipfire/." /var/ipfire/
-cp -a "$BASE_DIR/cgi-bin/." /srv/web/ipfire/cgi-bin/
-install -m 755 "$BASE_DIR/etc/init.d/tailscale" /etc/init.d/tailscale
-install -m 755 "$BASE_DIR/bin/tailscale" /usr/local/bin/tailscale
-install -m 755 "$BASE_DIR/bin/tailscaled" /usr/sbin/tailscaled
+cp -R -f "$BASE_DIR/src/." /
 
 if [ -n "$tmp_settings" ] && [ -f "$tmp_settings" ]; then
     install -m 644 "$tmp_settings" /var/ipfire/tailscale/settings
@@ -252,26 +139,19 @@ if [ -n "$tmp_settings" ] && [ -f "$tmp_settings" ]; then
 fi
 
 print_step "Setting permissions"
-chmod 755 /etc/init.d/tailscale
-chmod 755 /usr/local/bin/tailscale
-chmod 755 /usr/sbin/tailscaled
-chmod 755 /srv/web/ipfire/cgi-bin/tailscale.cgi
-chmod 755 /var/ipfire/tailscale
-chmod 644 /var/ipfire/tailscale/settings
+chmod 755 /etc/rc.d/init.d/tailscale /usr/local/bin/tailscale /usr/sbin/tailscaled /srv/web/ipfire/cgi-bin/tailscale.cgi 2>/dev/null || true
+chmod 644 /var/ipfire/menu.d/83-tailscale.menu /var/ipfire/tailscale/settings 2>/dev/null || true
+chmod 755 /var/ipfire/tailscale 2>/dev/null || true
 [ -f /var/ipfire/tailscale/state ] || touch /var/ipfire/tailscale/state
 chmod 644 /var/ipfire/tailscale/state
 
 touch /var/log/tailscale.log
 chmod 644 /var/log/tailscale.log
-
-print_step "Verifying installation"
-[ -x /etc/init.d/tailscale ] || die "tailscale init script is missing or not executable"
-[ -x /usr/local/bin/tailscale ] || die "tailscale CLI is missing or not executable"
-[ -x /usr/sbin/tailscaled ] || die "tailscaled is missing or not executable"
-[ -f /srv/web/ipfire/cgi-bin/tailscale.cgi ] || die "tailscale.cgi was not installed"
+install -d -m 755 /var/run/tailscale
+install -d -m 755 /etc/sudoers.d
 
 print_step "Configuring startup"
-ln -sf /etc/init.d/tailscale /etc/rc.d/rc3.d/S99tailscale
+ln -sf /etc/rc.d/init.d/tailscale /etc/rc.d/rc3.d/S99tailscale
 
 print_step "Configuring sudo permissions"
 cat > /etc/sudoers.d/tailscale <<'EOF'
@@ -281,12 +161,6 @@ nobody ALL=(ALL) NOPASSWD: /usr/sbin/tailscaled
 EOF
 chmod 440 /etc/sudoers.d/tailscale
 visudo -cf /etc/sudoers.d/tailscale >/dev/null || die "sudoers validation failed"
-
-print_step "Installing language entries"
-install_language_entries
-
-print_step "Rebuilding language cache"
-perl -e "require '/var/ipfire/lang.pl'; Lang::BuildCacheLang();" || die "Failed to rebuild language cache"
 
 print_step "Adding forwarding rules"
 iptables -C FORWARD -i tailscale0 -j ACCEPT 2>/dev/null || iptables -A FORWARD -i tailscale0 -j ACCEPT
