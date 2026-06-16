@@ -6,7 +6,7 @@
 
 适用于 IPFire 的 Tailscale VPN 集成插件，提供原生 Web UI 管理界面支持。
 
-![Screenshot](image/tailscale.png)
+![Screenshot](image/tailscale.cn.png)
 
 ## 项目概述
 
