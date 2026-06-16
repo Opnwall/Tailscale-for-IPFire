@@ -4,13 +4,9 @@
 ![Architecture](https://img.shields.io/badge/Arch-x86__64-blue)
 ![License](https://img.shields.io/badge/License-GPLv3-green)
 
-适用于 IPFire 的 Tailscale VPN 集成插件，提供原生 Web UI 管理界面支持。
+Tailscale for IPFire 为 IPFire 提供原生 Web 管理界面，可直接在 IPFire 管理后台中完成 Tailscale 的配置与管理。
 
 ![Screenshot](image/tailscale.cn.png)
-
-## 项目概述
-
-Tailscale for IPFire 为 IPFire 提供原生 Web 管理界面，可直接在 IPFire 管理后台中完成 Tailscale 的配置与管理。
 
 ## 功能特性
 
