@@ -4,7 +4,7 @@
 ![Architecture](https://img.shields.io/badge/Arch-x86__64-blue)
 ![License](https://img.shields.io/badge/License-GPLv3-green)
 
-Tailscale VPN integration for IPFire with native Web UI support.
+Tailscale integration for IPFire with native Web UI support.
 
 ![Screenshot](image/tailscale.png)
 
@@ -12,24 +12,19 @@ Tailscale VPN integration for IPFire with native Web UI support.
 
 Tailscale for IPFire provides a native Web UI for managing Tailscale directly from the IPFire administration interface.
 
-The package automatically downloads the official Tailscale static binaries during installation and supports subnet routing, exit node functionality, and multilingual Web UI integration.
-
 ## Features
 
 - Native IPFire Web UI integration
-- Join Tailscale networks using Auth Keys
-- Configure custom hostnames
-- Advertise subnet routes
-- Enable Exit Node functionality
-- Automatic platform detection
-- Automatic download of official Tailscale static binaries
-- English, Simplified Chinese, and Traditional Chinese language support
+- Join Tailscale networks using authentication keys
+- Supports custom hostnames, subnet routing, and exit node configuration
+- Automatically detects platform architecture and downloads official Tailscale static binaries
+- Supports English, Simplified Chinese, and Traditional Chinese; defaults to English for other languages
 
 ## Tested Platforms
 
 | Platform | Version |
 |----------|----------|
-| IPFire | 2.29 Core Update 203 |
+| IPFire | 2.29 Core Update 202 |
 | Architecture | x86_64 / amd64 |
 
 ## Installation
@@ -52,62 +47,22 @@ After installation, open:
 Services > Tailscale
 ```
 
-Configure:
+First, click Start and enter the authentication key, then configure the following items as needed:
 
-- Auth Key
 - Hostname
-- Advertise Routes
-- Exit Node settings
+- Advertised routes
+- Exit node
 
-Then click:
+Click "Save Settings," then click:
 
 ```text
 Join Network
 ```
 
-## Command Line Usage
-
-Bring up Tailscale:
-
-```bash
-/etc/init.d/tailscale up
-```
-
-## Subnet Router
-
-To advertise an internal subnet:
-
-```text
-192.168.101.0/24
-```
-
-Or use:
-
-```bash
-tailscale up --advertise-routes=192.168.101.0/24 --accept-dns=false --accept-routes --hostname=ipfire
-```
-
-After advertising routes:
-
-1. Open the Tailscale Admin Console
-2. Select the IPFire device
-3. Enable Subnet Routes
-
-## Exit Node
-
-Enable Exit Node in the Web UI or run:
-
-```bash
-tailscale up --advertise-exit-node --accept-dns=false --accept-routes --advertise-routes=192.168.101.0/24 --hostname=ipfire
-```
-
-Then approve:
-
-```text
-Use as exit node
-```
-
-in the Tailscale Admin Console.
+Once completed:
+1. Open the Tailscale admin console.
+2. Select the corresponding IPFire device.
+3. Configure the settings to disable key expiry and enable advertised routes or exit node options.
 
 ## Tailscale Binaries
 
@@ -117,10 +72,9 @@ https://pkgs.tailscale.com/stable/#static
 
 ## Notes
 
-- Auth Keys are recommended for automated deployment.
-- Advertised routes must be approved in the Tailscale Admin Console.
-- Exit Nodes must also be approved in the Admin Console.
-- DNS management is disabled by default (`--accept-dns=false`) to avoid overriding local IPFire DNS settings.
+- Automatic deployment via the plugin settings page requires an authentication key.
+- Route advertisements and exit nodes must be manually approved in the Tailscale admin console.
+- DNS takeover is disabled by default (`--accept-dns=false`) to avoid overwriting the local IPFire DNS configuration.
 
 ## Disclaimer
 
