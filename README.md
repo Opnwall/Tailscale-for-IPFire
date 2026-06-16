@@ -129,10 +129,6 @@ https://pkgs.tailscale.com/stable/#static
 - Exit Node 同样需要在管理后台批准。
 - 默认禁用 DNS 接管（`--accept-dns=false`），避免覆盖 IPFire 本地 DNS 配置。
 
-## 许可证
-
-GPLv3
-
 ## 免责声明
 
 本项目为社区维护的非官方软件包，使用风险由用户自行承担。
