@@ -49,7 +49,7 @@ sh uninstall.sh
 先点击启动，输入认证密钥，然后根据需要配置以下项目：
 
 - 主机名
-- 广播路由
+- 通告路由
 - 出口节点
 
 保存选项后再点击：
@@ -59,7 +59,7 @@ sh uninstall.sh
 完成后：
 1. 打开 Tailscale 管理后台
 2. 选择对应的 IPFire 设备
-3. 设置禁用密钥过期、启用子网路由或出口节点选项
+3. 设置禁用密钥过期、启用通告路由或出口节点选项
 
 ## Tailscale 二进制文件
 
@@ -69,7 +69,7 @@ https://pkgs.tailscale.com/stable/#static
 ## 注意事项
 
 - 插件设置页面只能使用认证密钥进行自动部署。
-- 广播路由和出口节点需要在 Tailscale 管理后台手动批准。
+- 通告路由和出口节点需要在 Tailscale 管理后台手动批准。
 - 默认禁用 DNS 接管（`--accept-dns=false`），避免覆盖 IPFire 本地 DNS 配置。
 
 ## 免责声明
