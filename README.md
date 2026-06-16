@@ -9,13 +9,9 @@
 ![Architecture](https://img.shields.io/badge/Arch-x86__64-blue)
 ![License](https://img.shields.io/badge/License-GPLv3-green)
 
-Tailscale integration for IPFire with native Web UI support.
+Tailscale for IPFire provides a native Web UI for managing Tailscale directly from the IPFire administration interface.
 
 ![Screenshot](image/tailscale.png)
-
-## Overview
-
-Tailscale for IPFire provides a native Web UI for managing Tailscale directly from the IPFire administration interface.
 
 ## Features
 
