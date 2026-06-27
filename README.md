@@ -1,6 +1,7 @@
 
 <div align="center">
-    <div align="center"> English | <a href="README.CN.md">中文</div>
+  <a href="README.md">English</a> |
+  <a href="README.CN.md">中文</a>
 </div>
 
 # Tailscale for IPFire
