@@ -1,6 +1,6 @@
+
 <div align="center">
-  <a href="README.md">English</a> |
-  <a href="README.CN.md">中文</a>
+    <div align="center"> English | <a href="README.CN.md">中文</div>
 </div>
 
 # Tailscale for IPFire
@@ -80,4 +80,4 @@ https://pkgs.tailscale.com/stable/#static
 
 ## Disclaimer
 
-This is an unofficial community project not supported by the IPFire team; use it at your own risk.
+This project is an unofficial community package，Use at your own risk.

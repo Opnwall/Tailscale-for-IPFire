@@ -71,7 +71,7 @@ download_tailscale_binaries() {
     DOWNLOAD_TMPDIR="$(mktemp -d /tmp/tailscale-static.XXXXXX)"
 
     echo "Downloading Tailscale static package: $url"
-    curl -fL "$url" -o "$DOWNLOAD_TMPDIR/tailscale.tgz"
+    curl --retry 3 --retry-delay 5 --connect-timeout 30 -fL "$url" -o "$DOWNLOAD_TMPDIR/tailscale.tgz"
 
     echo "Extracting Tailscale static package"
     tar -xzf "$DOWNLOAD_TMPDIR/tailscale.tgz" -C "$DOWNLOAD_TMPDIR"
@@ -115,6 +115,7 @@ print_step "Checking source files"
 [ -d "$BASE_DIR/src" ] || die "Missing directory: $BASE_DIR/src"
 [ -f "$BASE_DIR/src/etc/rc.d/init.d/tailscale" ] || die "Missing file: src/etc/rc.d/init.d/tailscale"
 [ -f "$BASE_DIR/src/srv/web/ipfire/cgi-bin/tailscale.cgi" ] || die "Missing file: src/srv/web/ipfire/cgi-bin/tailscale.cgi"
+[ -f "$BASE_DIR/src/etc/sudoers.d/tailscale" ] || die "Missing file: src/etc/sudoers.d/tailscale"
 
 print_step "Stopping old service"
 /etc/rc.d/init.d/tailscale stop >/dev/null 2>&1 || true
@@ -131,7 +132,9 @@ if [ -f /var/ipfire/tailscale/settings ]; then
     cp -p /var/ipfire/tailscale/settings "$tmp_settings"
 fi
 
-cp -R -f "$BASE_DIR/src/." /
+for dir in etc srv var; do
+    cp -R -f "$BASE_DIR/src/$dir/." "/$dir/"
+done
 
 if [ -n "$tmp_settings" ] && [ -f "$tmp_settings" ]; then
     install -m 644 "$tmp_settings" /var/ipfire/tailscale/settings
@@ -140,6 +143,8 @@ fi
 
 print_step "Setting permissions"
 chmod 755 /etc/rc.d/init.d/tailscale /usr/local/bin/tailscale /usr/sbin/tailscaled /srv/web/ipfire/cgi-bin/tailscale.cgi 2>/dev/null || true
+chown root:root /etc/sudoers.d/tailscale 2>/dev/null || true
+chmod 440 /etc/sudoers.d/tailscale
 chmod 644 /var/ipfire/menu.d/83-tailscale.menu /var/ipfire/tailscale/settings 2>/dev/null || true
 chmod 755 /var/ipfire/tailscale 2>/dev/null || true
 [ -f /var/ipfire/tailscale/state ] || touch /var/ipfire/tailscale/state
@@ -154,12 +159,6 @@ print_step "Configuring startup"
 ln -sf /etc/rc.d/init.d/tailscale /etc/rc.d/rc3.d/S99tailscale
 
 print_step "Configuring sudo permissions"
-cat > /etc/sudoers.d/tailscale <<'EOF'
-nobody ALL=(ALL) NOPASSWD: /etc/init.d/tailscale
-nobody ALL=(ALL) NOPASSWD: /usr/local/bin/tailscale
-nobody ALL=(ALL) NOPASSWD: /usr/sbin/tailscaled
-EOF
-chmod 440 /etc/sudoers.d/tailscale
 visudo -cf /etc/sudoers.d/tailscale >/dev/null || die "sudoers validation failed"
 
 print_step "Adding forwarding rules"

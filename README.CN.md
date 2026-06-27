@@ -1,8 +1,3 @@
-<div align="center">
-  <a href="README.md">English</a> |
-  <a href="README.CN.md">中文</a>
-</div>
-
 # Tailscale for IPFire
 
 ![IPFire](https://img.shields.io/badge/IPFire-2.29-orange)
@@ -29,15 +24,15 @@ Tailscale for IPFire 为 IPFire 提供原生 Web 管理界面，可直接在 IPF
 | IPFire | 2.29 Core Update 202 |
 | 架构 | x86_64 / amd64 |
 
-## 安装方法
+## 安装
 ```bash
 sh install.sh
 ```
-## 卸载方法
+## 卸载
 ```bash
 sh uninstall.sh
 ```
-## 配置过程
+## 配置
 安装完成后进入：
 ```text
 服务> Tailscale
@@ -58,7 +53,7 @@ sh uninstall.sh
 2. 选择对应的 IPFire 设备
 3. 设置禁用密钥过期、启用通告路由或出口节点选项
 
-## 二进制文件
+## Tailscale 二进制文件
 
 安装程序会自动下载官方静态二进制文件：
 https://pkgs.tailscale.com/stable/#static
@@ -71,4 +66,4 @@ https://pkgs.tailscale.com/stable/#static
 
 ## 免责声明
 
-这是一个非官方社区项目，与 IPFire 团队没有任何关联，也未获得其认可或支持。 部署前请自行审查源代码，并自行承担使用过程中可能产生的风险。
+本项目为社区维护的非官方软件包，使用风险由用户自行承担。
