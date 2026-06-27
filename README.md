@@ -80,4 +80,4 @@ https://pkgs.tailscale.com/stable/#static
 
 ## Disclaimer
 
-This project is an unofficial community package，Use at your own risk.
+This is an unofficial community project with no affiliation to the IPFire team; use it at your own risk.
